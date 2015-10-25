@@ -123,8 +123,8 @@
 			dbDriver="jdbc"> <heartbeat>select user()</heartbeat> <writeHost host="hostM1"
 			url="jdbc:mysql://localhost:3306" user="root" password="123456"> </writeHost>
 			</dataHost> -->
-        <dataNode name="dn4" dataHost="jdbchost" database="mycat_node1" />
-        <dataNode name="dn5" dataHost="jdbchost" database="mycat_node1" />
+        <dataNode name="dn4" dataHost="jdbchost" database="db4" />
+        <dataNode name="dn5" dataHost="jdbchost" database="db5" />
 	    <dataHost name="jdbchost" maxCon="2000" minCon="10" balance="1"
 	       writeType="0" dbType="mysql" dbDriver="native" switchType="1">
 			<heartbeat>select 1</heartbeat>
