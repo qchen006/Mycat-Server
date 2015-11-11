@@ -104,7 +104,7 @@
 				<!-- can have multi read hosts -->
 
 			</writeHost>
-			<writeHost host="hostS1" url="localhost:3316" user="root"
+			<writeHost host="hostS1" url="localhost:3306" user="root"
 				password="123456" />
 			<!-- <writeHost host="hostM2" url="localhost:3316" user="root" password="123456"/> -->
 		</dataHost>
