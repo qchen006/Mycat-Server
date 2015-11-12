@@ -269,6 +269,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			}
 			if (dataMergeSvr != null) {
 				try {
+					
+					//FIXME 这里是后台连接查询结束并且合并了之后，将数据写入到MergeService的runnalbe的queue中，并且MergeService Runnable在run方法里面读取queue的数据，
+					//然后写到前台连接的writeQueue中，最后被前台连接输出
 					dataMergeSvr.outputMergeResult(session, eof);
 				} catch (Exception e) {
 					handleDataProcessException(e);

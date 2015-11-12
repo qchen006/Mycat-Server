@@ -518,6 +518,10 @@ public abstract class Connection implements ClosableConnection{
 			List<ByteBuffer> blockes = bufferArray.getWritedBlockLst();
 			if (!bufferArray.getWritedBlockLst().isEmpty()) {
 				for (ByteBuffer curBuf : blockes) {
+					//FIXME 前台连接执行查询语句的时候，路由了之后，实际上就是在这里在往Backend Connection的Connection实例对象写一些字节,并且
+					//this.enableWrite(true);   enableWrite就是注册了key的write事件
+					
+					//同时，这里也是后台连接获取了查询结构之后，也会在这里写入到前台链接的channel的一个过程
 					writeQueue.offer(curBuf);
 				}
 			}
