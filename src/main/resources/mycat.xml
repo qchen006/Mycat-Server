@@ -7,7 +7,7 @@
 			<property name="serverPort">8066</property>
 			<property name="managerPort">9066</property>
 			<property name="charset">utf8</property>
-		    <!-- <property name="registryAddress">zookeeper://m1:2181</property>  -->
+		    <property name="registryAddress">zookeeper://m1:2181</property>
 		    <!--   <property name="useCompression">1</property> -->
 			<!-- 1为开启mysql压缩协议 -->
 			<!--
