@@ -3,11 +3,10 @@
 <mycat>
     <server-config>
 		<system>
-			<property name="sequnceHandlerType">2</property>
 			<property name="serverPort">8066</property>
 			<property name="managerPort">9066</property>
 			<property name="charset">utf8</property>
-		    <property name="registryAddress">zookeeper://m1:2181</property>
+		    <!-- <property name="registryAddress">zookeeper://m1:2181</property>  -->
 		    <!--   <property name="useCompression">1</property> -->
 			<!-- 1为开启mysql压缩协议 -->
 			<!--
@@ -23,7 +22,7 @@
 			<!--
 			<property name="maxStringLiteralLength">65535</property>
 			-->
-			<!-- <property name="sequnceHandlerType">0</property> -->
+			<property name="sequnceHandlerType">0</property>
 			<!-- <property name="backSocketNoDelay">1</property> -->
 			<!-- <property name="frontSocketNoDelay">1</property> -->
 			<!-- <property name="processorExecutor">16</property> -->
@@ -53,25 +52,34 @@
 		 -->
     </server-config>
     <schema-config>
-        <schema name="mycat" checkSQLschema="true" sqlMaxLimit="100" dataNode="dn4" >
-        	<table name="TUSER" primaryKey="id" autoIncrement="true" rule="auto-sharding-long" dataNode="dn4,dn5">
-        	    <childTable  name="TUSER_DETAIL" primaryKey="id" autoIncrement="true" joinKey="USER_ID" parentKey="id"></childTable>
-        	</table>
-		</schema>
-		<schema name="mycat2" checkSQLschema="true" sqlMaxLimit="100" dataNode="dn4" >
-        	<table name="TUSER" primaryKey="id" autoIncrement="true" rule="auto-sharding-long" dataNode="dn4,dn5">
-        	    <childTable  name="TUSER_DETAIL" primaryKey="id" autoIncrement="true" joinKey="USER_ID" parentKey="id"></childTable>
+        <schema name="mycat" checkSQLschema="true" sqlMaxLimit="100" dataNode="dn1" >
+        	<table name="TUSER" primaryKey="id" autoIncrement="true" rule="auto-sharding-long" dataNode="dn1,dn2">
+        	    <childTable  name="TBLOG" primaryKey="id" autoIncrement="true" joinKey="uid" parentKey="id"></childTable>
         	</table>
 		</schema>
 		
 		<!-- <dataNode name="dn1$0-743" dataHost="localhost1" database="db$0-743"
 		/> -->
-        <dataNode name="dn4" dataHost="jdbchost" database="db4" />
-        <dataNode name="dn5" dataHost="jdbchost" database="db5" />
-	    <dataHost name="jdbchost" maxCon="2000" minCon="10" balance="1"
+        <dataNode name="dn1" dataHost="jdbchost" database="mycat1" />
+        <dataNode name="dn2" dataHost="jdbchost" database="mycat2" />
+        <!-- 
+	    <dataHost name="jdbchost" maxCon="2000" minCon="10" balance="3"
 	       writeType="0" dbType="mysql" dbDriver="native" switchType="1">
-			<heartbeat>select 1</heartbeat>
-			<writeHost host="master" url="127.0.0.1:3306" user="root" password="root"></writeHost>
+			<heartbeat>select 1</heartbeat>  -
+			<writeHost host="masternode" url="127.0.0.1:3306" user="root" password="root">
+				<readHost  host="slave1" url="127.0.0.1:3308" user="root" password="root" />
+			</writeHost>
+		</dataHost>
+		 -->
+		 
+		<dataHost name="jdbchost" maxCon="2000" minCon="10" balance="1"
+	       writeType="1" dbType="mysql" dbDriver="native" switchType="2" slaveThreshold="0">
+			<heartbeat>show slave status</heartbeat>
+			<writeHost host="master1node" url="127.0.0.1:3306" user="root" password="root">
+			</writeHost>
+			<writeHost host="master2node" url="127.0.0.1:3308" user="root" password="root">
+			</writeHost>
+			<!-- <readHost  host="slave1" url="127.0.0.1:3308" user="root" password="root" />  -->
 		</dataHost>
     </schema-config>
     <rule-config>

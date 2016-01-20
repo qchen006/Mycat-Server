@@ -21,6 +21,7 @@
         <logger name="org.apache.*" level="ERROR" additivity="false"/>
         <Root level="trace">
             <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
         </Root>
     </Loggers>
 </Configuration>
