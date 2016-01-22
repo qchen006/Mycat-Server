@@ -35,9 +35,9 @@
 			<property name="frontWriteQueueSize">4096</property> <property name="processors">32</property>
 			-->
 		</system>
-		<user name="root">
-			<property name="password">lexin112358</property>
-			<property name="schemas">TESTDB</property>
+		<user name="mycat">
+			<property name="password">mycat</property>
+			<property name="schemas">mycat</property>
 		</user>
 		<!-- comment other use names
 		<user name="test">
@@ -76,9 +76,9 @@
 		<dataHost name="jdbchost" maxCon="2000" minCon="10" balance="1"
 	       writeType="1" dbType="mysql" dbDriver="native" switchType="2" slaveThreshold="0">
 			<heartbeat>show slave status</heartbeat>
-			<writeHost host="master1node" url="127.0.0.1:3306" user="root" password="root">
+			<writeHost host="master1node" url="127.0.0.1:3308" user="root" password="root">
 			</writeHost>
-			<writeHost host="master2node" url="127.0.0.1:3308" user="root" password="root">
+			<writeHost host="master2node" url="127.0.0.1:3306" user="root" password="root">
 			</writeHost>
 			<!-- <readHost  host="slave1" url="127.0.0.1:3308" user="root" password="root" />  -->
 		</dataHost>
