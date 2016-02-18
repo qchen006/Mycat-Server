@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.util.StringUtil;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
@@ -22,6 +23,8 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import com.alibaba.druid.sql.parser.SQLParserUtils;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
+import com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter;
+import com.alibaba.druid.util.JdbcConstants;
 
 /**
  * 按SQL表名进行计算
@@ -30,7 +33,9 @@ import com.alibaba.druid.sql.parser.SQLStatementParser;
  *
  */
 public class TableStatAnalyzer implements QueryResultListener {
+	
 	private static final Logger LOGGER = Logger.getLogger(TableStatAnalyzer.class);
+	
 	private LinkedHashMap<String, TableStat> tableStatMap = new LinkedHashMap<String, TableStat>();	
 	private ReentrantReadWriteLock  lock  = new ReentrantReadWriteLock();
 	
@@ -46,10 +51,10 @@ public class TableStatAnalyzer implements QueryResultListener {
     }  
     
 	@Override
-	public void onQuery(QueryResult query) {
+	public void onQueryResult(QueryResult queryResult) {
 		
-		int sqlType = query.getSqlType();
-		String sql = query.getSql();
+		int sqlType = queryResult.getSqlType();
+		String sql = queryResult.getSql();
 
 		switch(sqlType) {
     	case ServerParse.SELECT:		
@@ -74,7 +79,7 @@ public class TableStatAnalyzer implements QueryResultListener {
     		
     		if ( masterTable != null ) {
     			TableStat tableStat = getTableStat( masterTable );
-    			tableStat.update(sqlType, sql, query.getStartTime(), query.getEndTime(), relaTables);		
+    			tableStat.update(sqlType, sql, queryResult.getStartTime(), queryResult.getEndTime(), relaTables);		
     		}    		
     		break;
     	}		
@@ -108,7 +113,7 @@ public class TableStatAnalyzer implements QueryResultListener {
 	/**
 	 * 获取 table 访问排序统计
 	 */
-	public List<Map.Entry<String, TableStat>> getTableStats() {
+	public List<Map.Entry<String, TableStat>> getTableStats(boolean isClear) {
 		
 		List<Map.Entry<String, TableStat>> list = null;
 		
@@ -118,8 +123,16 @@ public class TableStatAnalyzer implements QueryResultListener {
         } finally {
             lock.readLock().unlock();
         }
+        
+        if ( isClear ) {
+          ClearTable();//获取 table 访问排序统计后清理
+        }
         return list;
 	}	
+	
+	public void ClearTable() {
+		tableStatMap.clear();
+	}
 	/**
 	 * 排序
 	 */
@@ -195,12 +208,25 @@ public class TableStatAnalyzer implements QueryResultListener {
 				tables.add( fixName( table ) );
 				
 			} else if (stmt instanceof SQLSelectStatement ) {
-				stmt.accept(new MySqlASTVisitorAdapter() {	
-					public boolean visit(SQLExprTableSource x){
-						tables.add( fixName( x.toString() ) );
-						return super.visit(x);
-					}
-				});
+				
+				//TODO: modify by owenludong
+				String dbType = ((SQLSelectStatement) stmt).getDbType();
+				if( !StringUtil.isEmpty(dbType) && JdbcConstants.MYSQL.equals(dbType) ){
+					stmt.accept(new MySqlASTVisitorAdapter() {
+						public boolean visit(SQLExprTableSource x){
+							tables.add( fixName( x.toString() ) );
+							return super.visit(x);
+						}
+					});
+					
+				} else {
+					stmt.accept(new SQLASTVisitorAdapter() {
+						public boolean visit(SQLExprTableSource x){
+							tables.add( fixName( x.toString() ) );
+							return super.visit(x);
+						}
+					});
+				}
 			}	
 		  } catch (Exception e) {
 			  LOGGER.error("TableStatAnalyzer err:"+ e.toString());

@@ -11,7 +11,6 @@ import org.opencloudb.statistic.SQLRecorder;
  */
 public class UserStat {
 	
-	//private final static int SQL_SLOW_TIME = 1000;
 	private  long SQL_SLOW_TIME = 1000;
 	/**
 	 * SQL 执行记录
@@ -31,6 +30,7 @@ public class UserStat {
 	private String user;
 	
 
+	private UserSqlHigh sqlHighStat = null;
 	
 	public UserStat(String user) {
 		super();
@@ -38,6 +38,7 @@ public class UserStat {
 		this.rwStat = new UserRWStat();
 		this.sqlStat = new UserSqlStat(50);
 		this.sqlRecorder =  new SQLRecorder(MycatServer.getInstance().getConfig().getSystem().getSqlRecordCount());
+		this.sqlHighStat=new UserSqlHigh();
 	}
 
 	public String getUser() {
@@ -55,15 +56,28 @@ public class UserStat {
 	public UserSqlStat getSqlStat() {
 		return sqlStat;
 	}
+	
 	public void setSlowTime(long time) {
-		this.SQL_SLOW_TIME=time;
+		this.SQL_SLOW_TIME = time;
+		this.sqlRecorder.clear();
 	}
+	
+	public void clearSql() {
+		this.sqlStat.reset();
+	}
+	
+	public void clearSqlslow() {
+		this.sqlRecorder.clear();
+	}
+	
 	public void reset() {		
 		this.sqlRecorder.clear();
 		this.rwStat.reset();
 		this.sqlStat.reset();
 	}
-
+	public void clearRwStat() {
+		this.rwStat.reset();
+	}
 	/**
 	 * 更新状态
 	 * 
@@ -89,6 +103,11 @@ public class UserStat {
 		
 		//记录SQL
 		this.sqlStat.add(sql, executeTime, startTime, endTime );
+		
+		//记录高频SQL
+		this.sqlHighStat.addSql(sql, executeTime, startTime, endTime);
 	}
-
+	public  UserSqlHigh getSqlHigh(){
+		return this.sqlHighStat;
+	}
 }

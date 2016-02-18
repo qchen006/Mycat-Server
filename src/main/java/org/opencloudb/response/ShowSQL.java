@@ -63,9 +63,6 @@ public final class ShowSQL {
 
         fields[i] = PacketUtil.getField("USER", Fields.FIELD_TYPE_VARCHAR);
         fields[i++].packetId = ++packetId;
-        
-        fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
-        fields[i++].packetId = ++packetId;
 
         fields[i] = PacketUtil.getField("START_TIME", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;        
@@ -73,10 +70,13 @@ public final class ShowSQL {
         fields[i] = PacketUtil.getField("EXECUTE_TIME", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
         
+        fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i++].packetId = ++packetId;
+        
         eof.packetId = ++packetId;
     }
 
-    public static void execute(ManagerConnection c, long sql) {
+    public static void execute(ManagerConnection c, boolean isClear) {
         ByteBuffer buffer = c.allocate();
 
         // write header
@@ -103,6 +103,11 @@ public final class ShowSQL {
                     buffer = row.write(buffer, c,true);
                 }
             }
+            
+            //读取SQL监控后清理
+            if ( isClear ) {
+            	userStat.getSqlStat().clear();
+            }
         }
 
         
@@ -120,9 +125,9 @@ public final class ShowSQL {
     	RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(LongUtil.toBytes(idx));          
         row.add( StringUtil.encode( user, charset) );
-        row.add( StringUtil.encode( sql.getSql(), charset) );
         row.add( LongUtil.toBytes( sql.getStartTime() ) );
         row.add( LongUtil.toBytes( sql.getExecuteTime() ) );
+        row.add( StringUtil.encode( sql.getSql(), charset) );
         return row;
     }
 

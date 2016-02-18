@@ -34,6 +34,7 @@ import static org.opencloudb.server.parser.ServerParseSet.TX_READ_UNCOMMITTED;
 import static org.opencloudb.server.parser.ServerParseSet.TX_REPEATED_READ;
 import static org.opencloudb.server.parser.ServerParseSet.TX_SERIALIZABLE;
 import static org.opencloudb.server.parser.ServerParseSet.XA_FLAG_ON;
+
 import static org.opencloudb.server.parser.ServerParseSet.XA_FLAG_OFF;
 import org.apache.log4j.Logger;
 import org.opencloudb.config.ErrorCode;
@@ -42,18 +43,20 @@ import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParseSet;
 import org.opencloudb.server.response.CharacterSet;
+import org.opencloudb.util.SetIgnoreUtil;
 
 /**
  * SET 语句处理
  * 
  * @author mycat
+ * @author zhuam
  */
 public final class SetHandler {
-
+	
 	private static final Logger logger = Logger.getLogger(SetHandler.class);
-	private static final byte[] AC_OFF = new byte[] { 7, 0, 0, 1, 0, 0, 0, 0,
-			0, 0, 0 };
-
+	
+	private static final byte[] AC_OFF = new byte[] { 7, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 };
+		
 	public static void handle(String stmt, ServerConnection c, int offset) {
 		// System.out.println("SetHandler: "+stmt);
 		int rs = ServerParseSet.parse(stmt, offset);
@@ -122,10 +125,12 @@ public final class SetHandler {
 		case CHARACTER_SET_RESULTS:
 			CharacterSet.response(stmt, c, rs);
 			break;
-		default:
-			StringBuilder s = new StringBuilder();
-			logger.warn(s.append(c).append(stmt)
-					.append(" is not recoginized and ignored").toString());
+		default:			
+			 boolean ignore = SetIgnoreUtil.isIgnoreStmt(stmt);
+             if ( !ignore ) {        	 
+     			StringBuilder s = new StringBuilder();
+    			logger.warn(s.append(c).append(stmt).append(" is not recoginized and ignored").toString());
+             }
 			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 		}
 	}

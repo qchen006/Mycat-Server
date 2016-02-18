@@ -22,6 +22,7 @@ import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.server.util.SchemaUtil;
 import org.opencloudb.util.StringUtil;
 
 /**
@@ -45,7 +46,9 @@ public class ShowTables {
 	 * @param c
 	 */
 	public static void response(ServerConnection c,String stmt,int type) {
-		SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(c.getSchema());
+        String showSchemal= SchemaUtil.parseShowTableSchema(stmt) ;
+        String cSchema =showSchemal==null? c.getSchema():showSchemal;
+        SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(cSchema);
         if(schema != null) {
         	//不分库的schema，show tables从后端 mysql中查
             String node = schema.getDataNode();
