@@ -80,10 +80,8 @@
 		
 		<writeHost host="hostM1" url="localhost:3306" user="root"
 			password="root">
+			<readHost host="hostS1" url="localhost:3308" user="root" password="root"  weight="1" />
 		</writeHost>
-		<readHost host="hostM2" url="localhost:3308" user="root"
-			password="root">
-		</readHost>
 		 <!-- 
 		<writeHost host="hostS1" url="localhost:3308" user="root"
 			password="root" />
