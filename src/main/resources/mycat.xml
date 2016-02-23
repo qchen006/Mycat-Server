@@ -54,15 +54,16 @@
     
     <schema-config>
         <schema name="TESTDB" checkSQLschema="true" sqlMaxLimit="100" dataNode="dn1" >
-        	<table name="TUSER" primaryKey="id" autoIncrement="true" rule="auto-sharding-long" dataNode="dn1,dn2">
+        	<table name="TUSER" primaryKey="id" autoIncrement="true" rule="auto-sharding-long" dataNode="dn1,dn2, dn3">
         	    <childTable  name="TBLOG" primaryKey="id" autoIncrement="true" joinKey="uid" parentKey="id"></childTable>
         	</table>
 		</schema>
 		
 		<!-- <dataNode name="dn1$0-743" dataHost="localhost1" database="db$0-743"
 		/> -->
-        <dataNode name="dn1" dataHost="jdbchost" database="mycat1" />
-        <dataNode name="dn2" dataHost="jdbchost" database="mycat2" />
+		<dataNode name="dn1" dataHost="localhost1" database="mycat1" />
+		<dataNode name="dn2" dataHost="localhost1" database="mycat2" />
+		<dataNode name="dn3" dataHost="localhost1" database="mycat3" />
         <!-- 
 	    <dataHost name="jdbchost" maxCon="2000" minCon="10" balance="3"
 	       writeType="0" dbType="mysql" dbDriver="native" switchType="1">
@@ -73,15 +74,22 @@
 		</dataHost>
 		 -->
 		 
-		<dataHost name="jdbchost" maxCon="2000" minCon="10" balance="1"
-	       writeType="1" dbType="mysql" dbDriver="native" switchType="2" slaveThreshold="0">
-			<heartbeat>show slave status</heartbeat>
-			<writeHost host="master1node" url="127.0.0.1:3308" user="root" password="root">
-			</writeHost>
-			<writeHost host="master2node" url="127.0.0.1:3306" user="root" password="root">
-			</writeHost>
-			<!-- <readHost  host="slave1" url="127.0.0.1:3308" user="root" password="root" />  -->
-		</dataHost>
+		<dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
+		writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
+		<heartbeat>select user()</heartbeat>
+		
+		<writeHost host="hostM1" url="localhost:3306" user="root"
+			password="root">
+		</writeHost>
+		<readHost host="hostM2" url="localhost:3308" user="root"
+			password="root">
+		</readHost>
+		 <!-- 
+		<writeHost host="hostS1" url="localhost:3308" user="root"
+			password="root" />
+			-->
+		<!-- <writeHost host="hostM2" url="localhost:3316" user="root" password="123456"/> -->
+	</dataHost>
     </schema-config>
     <rule-config>
         <tableRule name="sharding-by-hour" column="create_time" functionName="io.mycat.route.function.LatestMonthPartion">
