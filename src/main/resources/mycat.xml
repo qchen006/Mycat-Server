@@ -22,7 +22,7 @@
 			<!--
 			<property name="maxStringLiteralLength">65535</property>
 			-->
-			<property name="sequnceHandlerType">0</property>
+			<property name="sequnceHandlerType">1</property>
 			<!-- <property name="backSocketNoDelay">1</property> -->
 			<!-- <property name="frontSocketNoDelay">1</property> -->
 			<!-- <property name="processorExecutor">16</property> -->
@@ -53,9 +53,8 @@
     </server-config>
     
     <schema-config>
-        <schema name="TESTDB" checkSQLschema="true" sqlMaxLimit="100" dataNode="dn1" >
-        	<table name="TUSER" primaryKey="id" autoIncrement="true" rule="auto-sharding-long" dataNode="dn1,dn2, dn3">
-        	    <childTable  name="TBLOG" primaryKey="id" autoIncrement="true" joinKey="uid" parentKey="id"></childTable>
+        <schema name="TESTDB" checkSQLschema="true" sqlMaxLimit="100">
+        	<table name="person" primaryKey="id" autoIncrement="true" rule="sharding-by-mod" dataNode="dn1,dn2,dn3">
         	</table>
 		</schema>
 		
@@ -78,9 +77,8 @@
 		writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
 		<heartbeat>select user()</heartbeat>
 		
-		<writeHost host="hostM1" url="localhost:3306" user="root"
-			password="root">
-			<readHost host="hostS1" url="localhost:3308" user="root" password="root"  weight="1" />
+		<writeHost host="hostM1" url="10.99.219.86:3306" user="root"
+			password="naverls">
 		</writeHost>
 		 <!-- 
 		<writeHost host="hostS1" url="localhost:3308" user="root"
@@ -213,13 +211,15 @@
     
     <sequence-config>
           <!-- GLOBAL_SEQ.HISIDS= GLOBAL_SEQ.MINID=1001 GLOBAL_SEQ.MAXID=1000000000 GLOBAL_SEQ.CURID=1000 -->
+         
+         <!--
           <sequence type="0" class="io.mycat.server.sequence.IncrSequencePropHandler">
-             <!-- <property name="filePath">dn1</property> -->
+                <property name="filePath">dn1</property> 
 	      </sequence>
-          <!-- <sequence type="1" class="io.mycat.server.sequence.IncrSequenceMySQLHandler">
-             <property name="TUSER">dn1</property>
-	         <property name="TORDER">dn1</property>
-	      </sequence> -->
+	      -->
+          <sequence type="1" class="io.mycat.server.sequence.IncrSequenceMySQLHandler">
+             <property name="PERSON">dn1</property>
+	      </sequence>
           <!-- <sequence type="2" class="io.mycat.server.sequence.IncrSequenceTimeHandler">
 	         <property name="WORKID">1</property>
 	         <property name="DATAACENTERID">1</property>
