@@ -34,6 +34,7 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.NonBlockingSession;
+import io.mycat.server.packet.BinaryRowDataPacket;
 import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.OkPacket;
@@ -73,6 +74,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	private volatile boolean fieldsReturned;
 	private int okCount;
 	private final boolean isCallProcedure;
+	private boolean prepared;
+	private List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
 
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
@@ -125,12 +128,28 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 
 		for (final RouteResultsetNode node : rrs.getNodes()) {
 			final BackendConnection conn = session.getTarget(node);
+			
+			node.setRunOnSlave(rrs.getRunOnSlave());
+			
+//			// 强制走 master, session.tryExistsCon 会用到属性canRunInReadDB进行判断；
+//			// 防止重用了 slave 的连接去走master
+//			if(rrs.getRunOnSlave() != null && !rrs.getRunOnSlave())
+//				node.setCanRunInReadDB(false); // 保证不会重用到slave的连接
+			
 			if (session.tryExistsCon(conn, node)) {
+				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
 				_execute(conn, node);
 			} else {
 				// create new connection
+				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
+				
 				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
 				dn.getConnection(dn.getDatabase(), autocommit, node, this, node);
+				// 注意该方法不仅仅是获取连接，获取新连接成功之后，会通过层层回调，最后回调到本类 的connectionAcquired
+				// 这是通过 上面方法的 this 参数的层层传递完成的。
+				// connectionAcquired 进行执行操作:
+				// session.bindConnection(node, conn);
+				// _execute(conn, node);
 			}
 
 		}
@@ -305,6 +324,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			// 处理limit语句
 			int start = rrs.getLimitStart();
 			int end = start + rrs.getLimitSize();
+
 			/*
 			 * modify by coder_czp@126.com#2015/11/2 优化为通过索引获取,避免无效循环
 			 * Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
@@ -319,14 +339,27 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			 */
 			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
 			List<RowDataPacket> results = dataMergeSvr.getResults(eof);
-			if (rrs.getOrderByCols() == null) {
-				end = results.size();
-				start = 0;
-			}
+            if (start < 0)
+               			start = 0;
+            if(rrs.getLimitSize()<0 || end > results.size())
+            {
+                end=results.size();
+            }
+//			if (rrs.getOrderByCols() == null) {
+//				end = results.size();
+//				start = 0;
+//			}
 			for (int i = start; i < end; i++) {
 				RowDataPacket row = results.get(i);
-				row.packetId = ++packetId;
-				row.write(bufferArray);
+				if(prepared) {
+					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+					binRowDataPk.read(fieldPackets, row);
+					binRowDataPk.packetId = ++packetId;
+					binRowDataPk.write(bufferArray);
+				} else {
+					row.packetId = ++packetId;
+					row.write(bufferArray);
+				}
 			}
 
 			eof[3] = ++packetId;
@@ -412,6 +445,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				if (needMerg) {
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
+					fieldPackets.add(fieldPkg);
 					String fieldName = new String(fieldPkg.name).toUpperCase();
 					if (columToIndx != null
 							&& !columToIndx.containsKey(fieldName)) {
@@ -425,7 +459,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 							fieldPkg.packetId = ++packetId;
 							shouldSkip = true;
 							fieldPkg.write(bufferArray);
-
 						}
 
 						columToIndx.put(fieldName,
@@ -435,6 +468,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 					// find primary key index
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
+					fieldPackets.add(fieldPkg);
 					String fieldName = new String(fieldPkg.name);
 					if (primaryKey.equalsIgnoreCase(fieldName)) {
 						primaryKeyIndex = i;
@@ -519,6 +553,14 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	public void requestDataResponse(byte[] data, BackendConnection conn) {
 		LoadDataUtil.requestFileDataResponse(data,
 				(MySQLBackendConnection) conn);
+	}
+
+	public boolean isPrepared() {
+		return prepared;
+	}
+
+	public void setPrepared(boolean prepared) {
+		this.prepared = prepared;
 	}
 
 }

@@ -161,7 +161,7 @@ public final class ServerParseShow {
 
 	// SHOW TABLE
 
-	static int tableCheck(String stmt, int offset) {
+	public static int tableCheck(String stmt, int offset) {
 
 		// strict match
 		String pat1 = "^\\s*(SHOW)\\s+(TABLES)\\s*";
@@ -197,8 +197,7 @@ public final class ServerParseShow {
 		Pattern pattern = Pattern.compile(pat1, Pattern.CASE_INSENSITIVE);
 		Matcher ma = pattern.matcher(stmt);
 
-		boolean flag = ma.matches();
-		return flag;
+		return ma.matches();
 	}
 
 	// SHOW DATABASES

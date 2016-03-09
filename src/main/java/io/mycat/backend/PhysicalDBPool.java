@@ -169,7 +169,44 @@ public class PhysicalDBPool {
         }
 
     }
-
+    
+    public boolean getReadCon(String schema, boolean autocommit, ResponseHandler handler, 
+											Object attachment, String database)throws Exception {
+        PhysicalDatasource theNode = null;
+        
+    	if (!readSources.isEmpty()) {
+    		int index = Math.abs(random.nextInt()) % readSources.size();
+            PhysicalDatasource[] allSlaves = this.readSources.get(index);
+            
+            if (allSlaves != null) {
+            	index = Math.abs(random.nextInt()) % readSources.size();
+            	PhysicalDatasource slave = allSlaves[index];
+            	
+                for (int i=0; i<allSlaves.length; i++) {
+                    if (isAlive(slave)) {
+                        if (checkSlaveSynStatus()) {
+                            if (canSelectAsReadNode(slave)) {
+                            	theNode = slave;
+                            	break;
+                            } else {
+                                continue;
+                            }
+                        } else {
+                        	theNode = slave;
+                        	break;
+                        }
+                    }
+                    index = Math.abs(random.nextInt()) % readSources.size();
+                }
+            }
+            theNode.getConnection(schema, autocommit, handler, attachment);
+            return true;
+    	}else{
+			LOGGER.warn("readhost is empty, readSources is empty.");
+			return false;
+		}
+	} 
+    
     public int getActivedIndex() {
         return activedIndex;
     }
@@ -239,6 +276,11 @@ public class PhysicalDBPool {
         for (int i = 0; i < writeSources.length; i++) {
             int j = loop(i + index);
             if (initSource(j, writeSources[j])) {
+                //不切换-1时，如果主写挂了   不允许切换过去
+                if(dataHostConfig.getSwitchType()==DataHostConfig.NOT_SWITCH_DS&&j>0)
+                {
+                    break;
+                }
                 active = j;
                 activedIndex = active;
                 initSuccess = true;
@@ -430,6 +472,15 @@ public class PhysicalDBPool {
         theNode.getConnection(schema, autocommit, handler, attachment);
     }
 
+    public void getReadBanlanceCon(String schema, boolean autocommit, ResponseHandler handler, 
+            								Object attachment, String database)throws Exception {
+    	PhysicalDatasource theNode = null;
+        ArrayList<PhysicalDatasource> okSources = null;
+    	okSources = getAllActiveRWSources(false, false, checkSlaveSynStatus());
+        theNode = randomSelect(okSources);
+        theNode.getConnection(schema, autocommit, handler, attachment);
+    }  
+    
     private boolean checkSlaveSynStatus() {
         return (dataHostConfig.getSlaveThreshold() != -1)
                 && (dataHostConfig.getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS);
@@ -519,7 +570,7 @@ public class PhysicalDBPool {
             PhysicalDatasource theSource = writeSources[i];
             if (isAlive(theSource)) {// write node is active
                 if (includeWriteNode) {
-	            	if (i == curActive && includeCurWriteNode == false) {
+	            	if (i == curActive && !includeCurWriteNode) {
 	                    // not include cur active source
 	                } else if (filterWithSlaveThreshold) {
 	                    if (canSelectAsReadNode(theSource)) {
@@ -550,7 +601,36 @@ public class PhysicalDBPool {
                         }
                     }
                 }
-            }
+                
+            } else {
+				
+				// TODO : add by zhuam	
+			    // 如果写节点不OK, 也要保证临时的读服务正常
+				if ( this.dataHostConfig.isTempReadHostAvailable() ) {
+				
+					if (!readSources.isEmpty()) {
+						// check all slave nodes
+						PhysicalDatasource[] allSlaves = this.readSources.get(i);
+						if (allSlaves != null) {
+							for (PhysicalDatasource slave : allSlaves) {
+								if (isAlive(slave)) {
+									
+									if (filterWithSlaveThreshold) {									
+										if (canSelectAsReadNode(slave)) {
+											okSources.add(slave);
+										} else {
+											continue;
+										}
+										
+									} else {
+										okSources.add(slave);
+									}
+								}
+							}
+						}
+					}
+				}				
+			}
 
         }
         return okSources;
