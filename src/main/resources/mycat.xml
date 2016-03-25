@@ -77,8 +77,8 @@
 		writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
 		<heartbeat>select user()</heartbeat>
 		
-		<writeHost host="hostM1" url="10.99.219.86:3306" user="root"
-			password="naverls">
+		<writeHost host="hostM1" url="10.113.217.199:3306" user="root"
+			password="root">
 		</writeHost>
 		 <!-- 
 		<writeHost host="hostS1" url="localhost:3308" user="root"
